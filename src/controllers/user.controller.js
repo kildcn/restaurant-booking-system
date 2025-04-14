@@ -191,6 +191,9 @@ exports.updateUser = async (req, res) => {
 // @desc    Delete user
 // @route   DELETE /api/users/:id
 // @access  Private/Admin
+// @desc    Delete user
+// @route   DELETE /api/users/:id
+// @access  Private/Admin
 exports.deleteUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
@@ -211,7 +214,8 @@ exports.deleteUser = async (req, res) => {
       });
     }
 
-    await user.remove();
+    // Using deleteOne instead of remove
+    await User.deleteOne({ _id: req.params.id });
 
     res.status(200).json({
       success: true,

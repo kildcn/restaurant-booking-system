@@ -533,7 +533,8 @@ exports.deleteBooking = async (req, res) => {
 
     const bookingDate = booking.date;
 
-    await booking.remove();
+    // Using deleteOne instead of remove
+    await Booking.deleteOne({ _id: req.params.id });
 
     // Update availability cache
     await bookingUtils.updateAvailabilityCache(bookingDate);
