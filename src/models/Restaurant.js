@@ -1,3 +1,4 @@
+// src/models/Restaurant.js - Updated model
 const mongoose = require('mongoose');
 
 const RestaurantSchema = new mongoose.Schema({
@@ -5,6 +6,10 @@ const RestaurantSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please add a restaurant name'],
     trim: true
+  },
+  description: {
+    type: String,
+    default: "We are a casual French bistro with an organic, local and seasonal cuisine accompanied by living wines! Our reservations allows you to secure your table for a duration of 2 hours. Tables of 7 or more people please email us at restaurantleustache@gmail.com"
   },
   address: {
     street: String,
@@ -15,7 +20,10 @@ const RestaurantSchema = new mongoose.Schema({
   },
   contact: {
     phone: String,
-    email: String,
+    email: {
+      type: String,
+      default: "restaurantleustache@gmail.com"
+    },
     website: String
   },
   openingHours: [{
@@ -47,7 +55,7 @@ const RestaurantSchema = new mongoose.Schema({
   bookingRules: {
     timeSlotDuration: {
       type: Number,
-      default: 30,
+      default: 15,
       min: 15,
       max: 240
     }, // in minutes

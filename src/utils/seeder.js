@@ -1,3 +1,4 @@
+// src/utils/seeder.js
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
@@ -45,9 +46,19 @@ const createAdminUser = async () => {
       role: 'admin'
     });
 
+    // Create a customer user for demo
+    const customer = await User.create({
+      name: 'Demo Customer',
+      email: 'customer@example.com',
+      phone: '123-456-7890',
+      password: 'password123',  // This will be hashed by the pre-save hook
+      role: 'customer'
+    });
+
     console.log('Admin user created:', admin.email);
+    console.log('Customer user created:', customer.email);
   } catch (error) {
-    console.error('Error creating admin user:', error.message);
+    console.error('Error creating users:', error.message);
   }
 };
 
@@ -59,12 +70,32 @@ const createRestaurantSettings = async () => {
 
     if (restaurantExists) {
       console.log('Restaurant settings already exist');
+
+      // Update existing restaurant with correct hours
+      restaurantExists.name = "L'Eustache";
+      restaurantExists.description = "We are a casual French bistro with an organic, local and seasonal cuisine accompanied by living wines! Our reservations allows you to secure your table for a duration of 2 hours. Tables of 7 or more people please email us at restaurantleustache@gmail.com";
+      restaurantExists.contact.email = "restaurantleustache@gmail.com";
+
+      // Update opening hours - Wednesday to Saturday, 6PM to 11:45PM
+      restaurantExists.openingHours = [
+        { day: 0, open: "18:00", close: "23:45", isClosed: true },  // Sunday - closed
+        { day: 1, open: "18:00", close: "23:45", isClosed: true },  // Monday - closed
+        { day: 2, open: "18:00", close: "23:45", isClosed: true },  // Tuesday - closed
+        { day: 3, open: "18:00", close: "23:45", isClosed: false }, // Wednesday
+        { day: 4, open: "18:00", close: "23:45", isClosed: false }, // Thursday
+        { day: 5, open: "18:00", close: "23:45", isClosed: false }, // Friday
+        { day: 6, open: "18:00", close: "23:45", isClosed: false }  // Saturday
+      ];
+
+      await restaurantExists.save();
+      console.log('Restaurant settings updated');
       return;
     }
 
     // Create restaurant settings
     const restaurant = await Restaurant.create({
-      name: 'Demo Restaurant',
+      name: "L'Eustache",
+      description: "We are a casual French bistro with an organic, local and seasonal cuisine accompanied by living wines! Our reservations allows you to secure your table for a duration of 2 hours. Tables of 7 or more people please email us at restaurantleustache@gmail.com",
       address: {
         street: '123 Main St',
         city: 'Anytown',
@@ -74,26 +105,26 @@ const createRestaurantSettings = async () => {
       },
       contact: {
         phone: '123-456-7890',
-        email: 'info@restaurant.com',
-        website: 'www.restaurant.com'
+        email: 'restaurantleustache@gmail.com',
+        website: 'www.leustache.com'
       },
       openingHours: [
-        { day: 0, open: '12:00', close: '22:00', isClosed: false }, // Sunday
-        { day: 1, open: '11:00', close: '22:00', isClosed: false }, // Monday
-        { day: 2, open: '11:00', close: '22:00', isClosed: false }, // Tuesday
-        { day: 3, open: '11:00', close: '22:00', isClosed: false }, // Wednesday
-        { day: 4, open: '11:00', close: '23:00', isClosed: false }, // Thursday
-        { day: 5, open: '11:00', close: '23:00', isClosed: false }, // Friday
-        { day: 6, open: '12:00', close: '23:00', isClosed: false }  // Saturday
+        { day: 0, open: "18:00", close: "23:45", isClosed: true },  // Sunday - closed
+        { day: 1, open: "18:00", close: "23:45", isClosed: true },  // Monday - closed
+        { day: 2, open: "18:00", close: "23:45", isClosed: true },  // Tuesday - closed
+        { day: 3, open: "18:00", close: "23:45", isClosed: false }, // Wednesday
+        { day: 4, open: "18:00", close: "23:45", isClosed: false }, // Thursday
+        { day: 5, open: "18:00", close: "23:45", isClosed: false }, // Friday
+        { day: 6, open: "18:00", close: "23:45", isClosed: false }  // Saturday
       ],
-      maxCapacity: 100,
+      maxCapacity: 80,
       bookingRules: {
-        timeSlotDuration: 30,
-        minAdvanceBooking: 60,
-        maxAdvanceBooking: 30,
-        maxDuration: 120,
-        bufferBetweenBookings: 15,
-        maxPartySize: 10,
+        timeSlotDuration: 15,          // Allow 15-minute intervals
+        minAdvanceBooking: 60,         // 1 hour in advance minimum
+        maxAdvanceBooking: 30,         // Up to 30 days in advance
+        maxDuration: 120,              // 2 hours per booking
+        bufferBetweenBookings: 15,     // 15 minutes between bookings
+        maxPartySize: 10,              // Tables of 7+ should email
         maxCapacityThreshold: 90,
         allowedPartySizes: {
           min: 1,
@@ -106,7 +137,7 @@ const createRestaurantSettings = async () => {
           reason: 'Christmas Day'
         },
         {
-          date: new Date(new Date().getFullYear(), 0, 1), // New Year's Day
+          date: new Date(new Date().getFullYear(), 0, 1),  // New Year's Day
           reason: 'New Year\'s Day'
         }
       ]
@@ -131,22 +162,22 @@ const createSampleTables = async () => {
 
     // Sample tables data
     const tablesData = [
-      { tableNumber: 'T1', capacity: 2, section: 'window' },
-      { tableNumber: 'T2', capacity: 2, section: 'window' },
-      { tableNumber: 'T3', capacity: 4, section: 'indoor' },
-      { tableNumber: 'T4', capacity: 4, section: 'indoor' },
-      { tableNumber: 'T5', capacity: 4, section: 'indoor' },
-      { tableNumber: 'T6', capacity: 6, section: 'indoor' },
-      { tableNumber: 'T7', capacity: 6, section: 'indoor' },
-      { tableNumber: 'T8', capacity: 8, section: 'indoor' },
-      { tableNumber: 'B1', capacity: 2, section: 'bar' },
-      { tableNumber: 'B2', capacity: 2, section: 'bar' },
-      { tableNumber: 'B3', capacity: 2, section: 'bar' },
-      { tableNumber: 'B4', capacity: 2, section: 'bar' },
-      { tableNumber: 'O1', capacity: 4, section: 'outdoor' },
-      { tableNumber: 'O2', capacity: 4, section: 'outdoor' },
-      { tableNumber: 'O3', capacity: 6, section: 'outdoor' },
-      { tableNumber: 'P1', capacity: 10, section: 'private' }
+      { tableNumber: 'A1', capacity: 2, section: 'window', shape: 'round' },
+      { tableNumber: 'A2', capacity: 2, section: 'window', shape: 'round' },
+      { tableNumber: 'A3', capacity: 4, section: 'indoor', shape: 'rectangle' },
+      { tableNumber: 'A4', capacity: 4, section: 'indoor', shape: 'rectangle' },
+      { tableNumber: 'A5', capacity: 4, section: 'indoor', shape: 'rectangle' },
+      { tableNumber: 'A6', capacity: 6, section: 'indoor', shape: 'rectangle' },
+      { tableNumber: 'A7', capacity: 6, section: 'indoor', shape: 'rectangle' },
+      { tableNumber: 'A8', capacity: 8, section: 'indoor', shape: 'rectangle' },
+      { tableNumber: 'B1', capacity: 2, section: 'bar', shape: 'round' },
+      { tableNumber: 'B2', capacity: 2, section: 'bar', shape: 'round' },
+      { tableNumber: 'B3', capacity: 2, section: 'bar', shape: 'round' },
+      { tableNumber: 'B4', capacity: 2, section: 'bar', shape: 'round' },
+      { tableNumber: 'C1', capacity: 4, section: 'outdoor', shape: 'rectangle' },
+      { tableNumber: 'C2', capacity: 4, section: 'outdoor', shape: 'rectangle' },
+      { tableNumber: 'C3', capacity: 6, section: 'outdoor', shape: 'rectangle' },
+      { tableNumber: 'P1', capacity: 10, section: 'private', shape: 'rectangle' }
     ];
 
     // Insert tables
