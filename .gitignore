@@ -60,3 +60,6 @@ temp/
 
 # mongodb data directory if using local mongodb
 data/db/
+
+# Frontend application directory
+/restaurant-frontend/

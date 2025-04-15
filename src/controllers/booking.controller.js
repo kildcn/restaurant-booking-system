@@ -551,3 +551,47 @@ exports.deleteBooking = async (req, res) => {
     });
   }
 };
+
+// @desc    Lookup booking by reference and email
+// @route   POST /api/bookings/lookup
+// @access  Public
+exports.lookupBooking = async (req, res) => {
+  try {
+    const { reference, email } = req.body;
+
+    if (!reference || !email) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide both reference number and email'
+      });
+    }
+
+    // The reference is assumed to be the last 6 characters of the booking ID
+    // We'll use a regex to find bookings with IDs ending with the reference (case insensitive)
+    const bookingRegex = new RegExp(reference + '$', 'i');
+
+    // Find bookings that match the reference pattern and the email
+    const booking = await Booking.findOne({
+      _id: bookingRegex,
+      'customer.email': email
+    }).populate('tables');
+
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'No booking found with the provided reference and email'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: booking
+    });
+  } catch (error) {
+    console.error('Error looking up booking:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error'
+    });
+  }
+};
