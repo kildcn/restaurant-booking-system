@@ -559,6 +559,8 @@ exports.lookupBooking = async (req, res) => {
   try {
     const { reference, email } = req.body;
 
+    console.log('Lookup request received:', { reference, email });
+
     if (!reference || !email) {
       return res.status(400).json({
         success: false,
@@ -566,17 +568,18 @@ exports.lookupBooking = async (req, res) => {
       });
     }
 
-    // The reference is assumed to be the last 6 characters of the booking ID
-    // We'll use a regex to find bookings with IDs ending with the reference (case insensitive)
-    const bookingRegex = new RegExp(reference + '$', 'i');
-
-    // Find bookings that match the reference pattern and the email
-    const booking = await Booking.findOne({
-      _id: bookingRegex,
+    // Instead of using regex directly as ObjectId, we need to fetch all bookings
+    // and filter them by ID suffix
+    const bookings = await Booking.find({
       'customer.email': email
     }).populate('tables');
 
-    if (!booking) {
+    // Now manually filter for bookings with IDs ending with the reference
+    const matchingBooking = bookings.find(booking =>
+      booking._id.toString().toLowerCase().endsWith(reference.toLowerCase())
+    );
+
+    if (!matchingBooking) {
       return res.status(404).json({
         success: false,
         message: 'No booking found with the provided reference and email'
@@ -585,7 +588,7 @@ exports.lookupBooking = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      data: booking
+      data: matchingBooking
     });
   } catch (error) {
     console.error('Error looking up booking:', error);

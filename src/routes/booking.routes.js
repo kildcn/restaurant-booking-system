@@ -7,7 +7,8 @@ const {
   getBooking,
   updateBooking,
   updateBookingStatus,
-  deleteBooking
+  deleteBooking,
+  lookupBooking
 } = require('../controllers/booking.controller');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -22,6 +23,16 @@ router.post(
     check('partySize', 'Party size must be a number').isNumeric()
   ],
   checkAvailability
+);
+
+// Add the booking lookup route (must be before protect middleware)
+router.post(
+  '/lookup',
+  [
+    check('reference', 'Reference number is required').not().isEmpty(),
+    check('email', 'Valid email is required').isEmail()
+  ],
+  lookupBooking
 );
 
 // Booking creation can be done by anyone, but with restrictions for non-authenticated users
