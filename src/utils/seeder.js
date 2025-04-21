@@ -1,4 +1,4 @@
-// src/utils/seeder.js
+// src/utils/seeder.js - Modified for L'Eustache only
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const bcrypt = require('bcryptjs');
@@ -10,6 +10,8 @@ dotenv.config();
 const Restaurant = require('../models/Restaurant');
 const User = require('../models/User');
 const Table = require('../models/Table');
+const Booking = require('../models/Booking');
+const Availability = require('../models/Availability');
 
 // Connect to MongoDB
 const connectDB = async () => {
@@ -26,85 +28,73 @@ const connectDB = async () => {
   }
 };
 
-// Create admin user
-const createAdminUser = async () => {
+// Reset database (drop all collections)
+const resetDatabase = async () => {
   try {
-    // Check if admin already exists
-    const adminExists = await User.findOne({ email: 'admin@restaurant.com' });
+    console.log('Resetting database...');
 
-    if (adminExists) {
-      console.log('Admin user already exists');
-      return;
-    }
-
-    // Create admin user
-    const admin = await User.create({
-      name: 'Admin User',
-      email: 'admin@restaurant.com',
-      phone: '123-456-7890',
-      password: 'password123',  // This will be hashed by the pre-save hook
-      role: 'admin'
+    // Drop all collections
+    await Booking.collection.drop().catch(err => {
+      if (err.code !== 26) console.error('Error dropping Booking collection:', err);
+      // Error code 26 means collection doesn't exist, which is fine
     });
 
-    // Create a customer user for demo
-    const customer = await User.create({
-      name: 'Demo Customer',
-      email: 'customer@example.com',
-      phone: '123-456-7890',
-      password: 'password123',  // This will be hashed by the pre-save hook
-      role: 'customer'
+    await Availability.collection.drop().catch(err => {
+      if (err.code !== 26) console.error('Error dropping Availability collection:', err);
     });
 
-    console.log('Admin user created:', admin.email);
-    console.log('Customer user created:', customer.email);
+    await Table.collection.drop().catch(err => {
+      if (err.code !== 26) console.error('Error dropping Table collection:', err);
+    });
+
+    await Restaurant.collection.drop().catch(err => {
+      if (err.code !== 26) console.error('Error dropping Restaurant collection:', err);
+    });
+
+    await User.collection.drop().catch(err => {
+      if (err.code !== 26) console.error('Error dropping User collection:', err);
+    });
+
+    console.log('Database reset complete');
   } catch (error) {
-    console.error('Error creating users:', error.message);
+    console.error('Error resetting database:', error);
   }
 };
 
-// Create restaurant settings
+// Create admin user
+const createAdminUser = async () => {
+  try {
+    // Create admin user
+    const admin = await User.create({
+      name: 'Admin User',
+      email: 'admin@leustache.com',
+      phone: '123-456-7890',
+      password: 'password',  // This will be hashed by the pre-save hook
+      role: 'admin'
+    });
+
+    console.log('Admin user created:', admin.email);
+  } catch (error) {
+    console.error('Error creating admin user:', error.message);
+  }
+};
+
+// Create L'Eustache restaurant settings
 const createRestaurantSettings = async () => {
   try {
-    // Check if restaurant settings already exist
-    const restaurantExists = await Restaurant.findOne();
-
-    if (restaurantExists) {
-      console.log('Restaurant settings already exist');
-
-      // Update existing restaurant with correct hours
-      restaurantExists.name = "L'Eustache";
-      restaurantExists.description = "We are a casual French bistro with an organic, local and seasonal cuisine accompanied by living wines! Our reservations allows you to secure your table for a duration of 2 hours. Tables of 7 or more people please email us at restaurantleustache@gmail.com";
-      restaurantExists.contact.email = "restaurantleustache@gmail.com";
-
-      // Update opening hours - Wednesday to Saturday, 6PM to 11:45PM
-      restaurantExists.openingHours = [
-        { day: 0, open: "18:00", close: "23:45", isClosed: true },  // Sunday - closed
-        { day: 1, open: "18:00", close: "23:45", isClosed: true },  // Monday - closed
-        { day: 2, open: "18:00", close: "23:45", isClosed: true },  // Tuesday - closed
-        { day: 3, open: "18:00", close: "23:45", isClosed: false }, // Wednesday
-        { day: 4, open: "18:00", close: "23:45", isClosed: false }, // Thursday
-        { day: 5, open: "18:00", close: "23:45", isClosed: false }, // Friday
-        { day: 6, open: "18:00", close: "23:45", isClosed: false }  // Saturday
-      ];
-
-      await restaurantExists.save();
-      console.log('Restaurant settings updated');
-      return;
-    }
-
     // Create restaurant settings
     const restaurant = await Restaurant.create({
       name: "L'Eustache",
       description: "We are a casual French bistro with an organic, local and seasonal cuisine accompanied by living wines! Our reservations allows you to secure your table for a duration of 2 hours. Tables of 7 or more people please email us at restaurantleustache@gmail.com",
       address: {
-        street: '123 Main St',
-        city: 'Anytown',
-        state: 'State',
-        zipCode: '12345',
-        country: 'Country'
+        street: 'Weisestraße 49',
+        city: 'Berlin',
+        state: '',
+        zipCode: '12049',
+        country: 'Germany'
       },
       contact: {
-        phone: '123-456-7890',
+        phone: '0163 5172664',
         email: 'restaurantleustache@gmail.com',
         website: 'www.leustache.com'
       },
@@ -124,22 +114,18 @@ const createRestaurantSettings = async () => {
         maxAdvanceBooking: 30,         // Up to 30 days in advance
         maxDuration: 120,              // 2 hours per booking
         bufferBetweenBookings: 15,     // 15 minutes between bookings
-        maxPartySize: 10,              // Tables of 7+ should email
+        maxPartySize: 6,               // Tables of 7+ should email
         maxCapacityThreshold: 90,
         allowedPartySizes: {
           min: 1,
-          max: 10
+          max: 6
         }
       },
       closedDates: [
-        {
-          date: new Date(new Date().getFullYear(), 11, 25), // Christmas
-          reason: 'Christmas Day'
-        },
-        {
-          date: new Date(new Date().getFullYear(), 0, 1),  // New Year's Day
-          reason: 'New Year\'s Day'
-        }
+        // Add any specific closed dates if needed
+      ],
+      specialEvents: [
+        // Add any special events if needed
       ]
     });
 
@@ -149,43 +135,36 @@ const createRestaurantSettings = async () => {
   }
 };
 
-// Create sample tables
-const createSampleTables = async () => {
+// Create tables for L'Eustache
+const createTables = async () => {
   try {
-    // Check if tables already exist
-    const tablesExist = await Table.countDocuments();
-
-    if (tablesExist > 0) {
-      console.log('Tables already exist');
-      return;
+    // Create indoor tables
+    for (let i = 1; i <= 15; i++) {
+      await Table.create({
+        tableNumber: `A${i}`,
+        capacity: 2,
+        section: 'indoor',
+        shape: 'round',
+        isActive: true,
+        isReservable: true
+      });
     }
 
-    // Sample tables data
-    const tablesData = [
-      { tableNumber: 'A1', capacity: 2, section: 'window', shape: 'round' },
-      { tableNumber: 'A2', capacity: 2, section: 'window', shape: 'round' },
-      { tableNumber: 'A3', capacity: 4, section: 'indoor', shape: 'rectangle' },
-      { tableNumber: 'A4', capacity: 4, section: 'indoor', shape: 'rectangle' },
-      { tableNumber: 'A5', capacity: 4, section: 'indoor', shape: 'rectangle' },
-      { tableNumber: 'A6', capacity: 6, section: 'indoor', shape: 'rectangle' },
-      { tableNumber: 'A7', capacity: 6, section: 'indoor', shape: 'rectangle' },
-      { tableNumber: 'A8', capacity: 8, section: 'indoor', shape: 'rectangle' },
-      { tableNumber: 'B1', capacity: 2, section: 'bar', shape: 'round' },
-      { tableNumber: 'B2', capacity: 2, section: 'bar', shape: 'round' },
-      { tableNumber: 'B3', capacity: 2, section: 'bar', shape: 'round' },
-      { tableNumber: 'B4', capacity: 2, section: 'bar', shape: 'round' },
-      { tableNumber: 'C1', capacity: 4, section: 'outdoor', shape: 'rectangle' },
-      { tableNumber: 'C2', capacity: 4, section: 'outdoor', shape: 'rectangle' },
-      { tableNumber: 'C3', capacity: 6, section: 'outdoor', shape: 'rectangle' },
-      { tableNumber: 'P1', capacity: 10, section: 'private', shape: 'rectangle' }
-    ];
+    // Create outdoor tables
+    for (let i = 1; i <= 5; i++) {
+      await Table.create({
+        tableNumber: `O${i}`,
+        capacity: 2,
+        section: 'outdoor',
+        shape: 'round',
+        isActive: true,
+        isReservable: true
+      });
+    }
 
-    // Insert tables
-    await Table.insertMany(tablesData);
-
-    console.log(`${tablesData.length} tables created`);
+    console.log('Tables created successfully');
   } catch (error) {
-    console.error('Error creating sample tables:', error.message);
+    console.error('Error creating tables:', error.message);
   }
 };
 
@@ -193,9 +172,13 @@ const createSampleTables = async () => {
 const seedData = async () => {
   await connectDB();
 
+  // Reset database first
+  await resetDatabase();
+
+  // Create new data
   await createAdminUser();
   await createRestaurantSettings();
-  await createSampleTables();
+  await createTables();
 
   console.log('Seed completed');
   process.exit();
